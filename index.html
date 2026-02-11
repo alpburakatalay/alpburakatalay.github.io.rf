@@ -1,0 +1,193 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>RF Lab Ultra</title>
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+<style>
+body{
+    background:#0f172a;
+    color:#e2e8f0;
+    font-family:Arial, sans-serif;
+    text-align:center;
+    padding:20px;
+}
+.card{
+    background:#1e293b;
+    padding:20px;
+    margin:20px auto;
+    width:90%;
+    max-width:750px;
+    border-radius:15px;
+    box-shadow:0 0 20px rgba(0,255,200,0.15);
+}
+input, select{
+    padding:8px;
+    margin:5px;
+}
+button{
+    padding:10px 18px;
+    margin-top:10px;
+    border:none;
+    border-radius:8px;
+    cursor:pointer;
+}
+.result{
+    margin-top:15px;
+    color:#00ffcc;
+    font-size:18px;
+}
+canvas{
+    margin-top:20px;
+}
+.small{
+    font-size:12px;
+    color:gray;
+}
+</style>
+</head>
+
+<body>
+
+<h1>📡 RF LAB ULTRA</h1>
+
+<!-- DALGA BOYU -->
+<div class="card">
+<h2>Dalga Boyu & Anten Hesabı</h2>
+<input type="number" id="freq" placeholder="Frekans (MHz)">
+<br>
+<button onclick="calcWave()">Hesapla</button>
+<div class="result" id="waveResult"></div>
+</div>
+
+<!-- MENZİL -->
+<div class="card">
+<h2>Menzil Hesapla</h2>
+<input type="number" id="h1" placeholder="1. Anten (m)">
+<input type="number" id="h2" placeholder="2. Anten (m)">
+<br>
+
+<select id="env">
+<option value="1">Açık Alan</option>
+<option value="0.5">Şehir İçi</option>
+<option value="0.3">Yoğun Beton</option>
+</select>
+
+<br>
+<label>
+<input type="checkbox" id="grafikSec"> Grafik Göster
+</label>
+<br>
+
+<button onclick="hesapla()">Hesapla</button>
+
+<div class="result" id="sonuc"></div>
+
+<canvas id="grafikCanvas" style="display:none;"></canvas>
+</div>
+
+<p class="small">
+Tüm hesaplamalar teoriktir. Gerçek sonuç ortam ve ekipmana göre değişir.
+</p>
+
+<script>
+
+let chart;
+
+// Dalga boyu hesaplama
+function calcWave(){
+    let f = parseFloat(document.getElementById("freq").value);
+    if(isNaN(f) || f<=0) return;
+
+    let wavelength = 300 / f;
+    let quarter = wavelength / 4;
+    let half = wavelength / 2;
+    let five8 = wavelength * 0.625;
+
+    document.getElementById("waveResult").innerHTML =
+        "Dalga Boyu: " + wavelength.toFixed(3) + " m<br>" +
+        "1/4 Anten: " + (quarter*100).toFixed(1) + " cm<br>" +
+        "1/2 Anten: " + (half*100).toFixed(1) + " cm<br>" +
+        "5/8 Anten: " + (five8*100).toFixed(1) + " cm";
+}
+
+// Menzil hesaplama
+function hesapla(){
+
+    let h1 = parseFloat(document.getElementById("h1").value);
+    let h2 = parseFloat(document.getElementById("h2").value);
+    let factor = parseFloat(document.getElementById("env").value);
+    let grafikAcik = document.getElementById("grafikSec").checked;
+
+    if(isNaN(h1) || isNaN(h2)) return;
+
+    let teorik = 3.57 * (Math.sqrt(h1) + Math.sqrt(h2));
+    let gercek = teorik * factor;
+
+    document.getElementById("sonuc").innerHTML =
+        "Teorik: " + teorik.toFixed(2) + " km<br>" +
+        "Tahmini Gerçek: " + gercek.toFixed(2) + " km";
+
+    if(grafikAcik){
+        grafikOlustur(h2, factor);
+    } else {
+        document.getElementById("grafikCanvas").style.display = "none";
+        if(chart) chart.destroy();
+    }
+}
+
+// Grafik
+function grafikOlustur(h2, factor){
+
+    let ctx = document.getElementById("grafikCanvas");
+    ctx.style.display = "block";
+
+    let yukseklikler = [];
+    let mesafeler = [];
+
+    for(let h1=1; h1<=50; h1++){
+        let d = 3.57 * (Math.sqrt(h1) + Math.sqrt(h2));
+        yukseklikler.push(h1);
+        mesafeler.push((d*factor).toFixed(2));
+    }
+
+    if(chart) chart.destroy();
+
+    chart = new Chart(ctx, {
+        type: 'line',
+        data: {
+            labels: yukseklikler,
+            datasets: [{
+                label: "Menzil (km)",
+                data: mesafeler,
+                borderColor: "#00ffcc",
+                fill:false,
+                tension:0.3
+            }]
+        },
+        options: {
+            responsive:true,
+            plugins:{
+                legend:{labels:{color:"#e2e8f0"}}
+            },
+            scales:{
+                x:{
+                    title:{display:true,text:"1. Anten Yüksekliği (m)",color:"#e2e8f0"},
+                    ticks:{color:"#e2e8f0"}
+                },
+                y:{
+                    title:{display:true,text:"Menzil (km)",color:"#e2e8f0"},
+                    ticks:{color:"#e2e8f0"}
+                }
+            }
+        }
+    });
+}
+
+</script>
+
+</body>
+</html>
